@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="520" viewBox="0 0 960 520" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+  </defs>
+  <rect width="960" height="520" fill="#ffffff"/>
+  <text x="30" y="40" font-size="22" font-weight="600" fill="#0f172a">Architettura</text>
+  <text x="30" y="64" font-size="14" fill="#475569">La dashboard gira in locale e parla solo con il backend; il backend parla con storage, indice e MCFlash.</text>
+
+  <!-- Dashboard -->
+  <rect x="30" y="110" width="250" height="300" rx="12" fill="#eef2ff" stroke="#6366f1" stroke-width="2"/>
+  <text x="50" y="140" font-size="16" font-weight="600" fill="#312e81">cv-mcflash-dashboard</text>
+  <text x="50" y="160" font-size="12" fill="#4338ca">(questo repo, eseguito in locale)</text>
+  <g font-size="13" fill="#1e1b4b">
+    <rect x="50" y="180" width="210" height="34" rx="6" fill="#fff" stroke="#a5b4fc"/><text x="62" y="202">Candidati (lista MCFlash)</text>
+    <rect x="50" y="222" width="210" height="34" rx="6" fill="#fff" stroke="#a5b4fc"/><text x="62" y="244">Crea candidato</text>
+    <rect x="50" y="264" width="210" height="34" rx="6" fill="#fff" stroke="#a5b4fc"/><text x="62" y="286">Aggiorna candidato</text>
+    <rect x="50" y="306" width="210" height="34" rx="6" fill="#fff" stroke="#a5b4fc"/><text x="62" y="328">Operazioni (monitor)</text>
+  </g>
+  <text x="50" y="380" font-size="12" fill="#4338ca">Pagine separate, nessun popup</text>
+
+  <!-- Backend -->
+  <rect x="360" y="110" width="270" height="300" rx="12" fill="#ecfeff" stroke="#0891b2" stroke-width="2"/>
+  <text x="380" y="140" font-size="16" font-weight="600" fill="#164e63">Autocompilazione CV_ON_SITE</text>
+  <text x="380" y="160" font-size="12" fill="#0e7490">Azure Functions (repo esistente)</text>
+  <g font-size="12.5" fill="#083344">
+    <text x="380" y="192">POST /api/extract</text><text x="560" y="192" fill="#15803d">esiste</text>
+    <text x="380" y="216">GET  /api/candidates</text><text x="560" y="216" fill="#b45309">nuovo</text>
+    <text x="380" y="240">POST /api/candidates/match</text><text x="560" y="240" fill="#b45309">nuovo</text>
+    <text x="380" y="264">POST /api/cv/render</text><text x="560" y="264" fill="#b45309">nuovo</text>
+    <text x="380" y="288">POST /api/cv/commit</text><text x="560" y="288" fill="#b45309">nuovo</text>
+    <text x="380" y="312">GET  /api/operations</text><text x="560" y="312" fill="#b45309">nuovo</text>
+  </g>
+  <text x="380" y="350" font-size="12" fill="#0e7490">Riusa: blob_storage, document_registry,</text>
+  <text x="380" y="368" font-size="12" fill="#0e7490">cv_mcflash_map, mcflash_candidates,</text>
+  <text x="380" y="386" font-size="12" fill="#0e7490">pipeline di ingestione/indicizzazione</text>
+
+  <!-- Right side services -->
+  <g font-size="13">
+    <rect x="710" y="96" width="220" height="62" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+    <text x="726" y="122" font-weight="600" fill="#14532d">Blob Storage</text>
+    <text x="726" y="142" font-size="11.5" fill="#166534">CV originali + CV MCFlash (.docx/.pdf)</text>
+
+    <rect x="710" y="172" width="220" height="62" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+    <text x="726" y="198" font-weight="600" fill="#14532d">Table Storage</text>
+    <text x="726" y="218" font-size="11.5" fill="#166534">CvMcflashMap · CvOperations · Snapshot</text>
+
+    <rect x="710" y="248" width="220" height="62" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+    <text x="726" y="274" font-weight="600" fill="#14532d">AI Search (indice CV)</text>
+    <text x="726" y="294" font-size="11.5" fill="#166534">sostituisce o aggiunge il documento</text>
+
+    <rect x="710" y="324" width="220" height="62" rx="10" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5"/>
+    <text x="726" y="350" font-weight="600" fill="#7c2d12">MCFlash API</text>
+    <text x="726" y="370" font-size="11.5" fill="#9a3412">lettura (esiste) · scrittura (da ricevere)</text>
+  </g>
+
+  <!-- arrows -->
+  <path d="M280 260 L355 260" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#a)" marker-start="url(#a)"/>
+  <text x="290" y="250" font-size="11" fill="#475569">HTTP</text>
+  <path d="M630 200 L705 127" stroke="#475569" stroke-width="1.6" fill="none" marker-end="url(#a)"/>
+  <path d="M630 225 L705 203" stroke="#475569" stroke-width="1.6" fill="none" marker-end="url(#a)"/>
+  <path d="M630 260 L705 279" stroke="#475569" stroke-width="1.6" fill="none" marker-end="url(#a)"/>
+  <path d="M630 290 L705 355" stroke="#475569" stroke-width="1.6" fill="none" marker-end="url(#a)"/>
+
+  <text x="30" y="470" font-size="12.5" fill="#475569">La dashboard non ha credenziali di storage o MCFlash: tutto passa dal backend, che già le gestisce.</text>
+</svg>

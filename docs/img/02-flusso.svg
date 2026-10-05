@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="430" viewBox="0 0 960 430" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+  </defs>
+  <rect width="960" height="430" fill="#ffffff"/>
+  <text x="30" y="40" font-size="22" font-weight="600" fill="#0f172a">Flusso di un CV</text>
+  <text x="30" y="64" font-size="14" fill="#475569">Dal file caricato al record MCFlash, con un punto di controllo umano prima di scrivere.</text>
+
+  <g font-size="13">
+    <!-- step boxes -->
+    <rect x="30"  y="100" width="150" height="96" rx="10" fill="#eef2ff" stroke="#6366f1"/>
+    <text x="45" y="126" font-weight="600" fill="#312e81">1 · Carica</text>
+    <text x="45" y="148" font-size="12" fill="#1e1b4b">PDF / DOCX</text>
+    <text x="45" y="166" font-size="12" fill="#1e1b4b">anteprima del</text>
+    <text x="45" y="182" font-size="12" fill="#1e1b4b">CV originale</text>
+
+    <rect x="214" y="100" width="150" height="96" rx="10" fill="#ecfeff" stroke="#0891b2"/>
+    <text x="229" y="126" font-weight="600" fill="#164e63">2 · Estrai</text>
+    <text x="229" y="148" font-size="12" fill="#083344">POST /api/extract</text>
+    <text x="229" y="166" font-size="12" fill="#083344">nome, ruolo, skill,</text>
+    <text x="229" y="182" font-size="12" fill="#083344">esperienze, lingue</text>
+
+    <rect x="398" y="100" width="150" height="96" rx="10" fill="#fefce8" stroke="#ca8a04"/>
+    <text x="413" y="126" font-weight="600" fill="#713f12">3 · Rivedi</text>
+    <text x="413" y="148" font-size="12" fill="#422006">l'utente corregge</text>
+    <text x="413" y="166" font-size="12" fill="#422006">i dati; bozza salvata</text>
+    <text x="413" y="182" font-size="12" fill="#422006">come backup</text>
+
+    <rect x="582" y="100" width="150" height="96" rx="10" fill="#ecfeff" stroke="#0891b2"/>
+    <text x="597" y="126" font-weight="600" fill="#164e63">4 · Genera</text>
+    <text x="597" y="148" font-size="12" fill="#083344">CV nel modello</text>
+    <text x="597" y="166" font-size="12" fill="#083344">MCFlash + anteprima</text>
+    <text x="597" y="182" font-size="12" fill="#083344">(si rigenera a ogni modifica)</text>
+
+    <rect x="766" y="100" width="164" height="96" rx="10" fill="#fff7ed" stroke="#ea580c"/>
+    <text x="781" y="126" font-weight="600" fill="#7c2d12">5 · Conferma</text>
+    <text x="781" y="148" font-size="12" fill="#431407">POST /api/cv/commit</text>
+    <text x="781" y="166" font-size="12" fill="#431407">un solo click, che fa</text>
+    <text x="781" y="182" font-size="12" fill="#431407">i passi qui sotto</text>
+  </g>
+  <g stroke="#475569" stroke-width="2" fill="none" marker-end="url(#a)">
+    <path d="M180 148 L210 148"/><path d="M364 148 L394 148"/><path d="M548 148 L578 148"/><path d="M732 148 L762 148"/>
+    <path d="M490 196 C 490 230, 440 230, 440 200" stroke-dasharray="4 4"/>
+  </g>
+
+  <!-- commit sub-steps -->
+  <rect x="30" y="240" width="900" height="160" rx="12" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="50" y="268" font-size="15" font-weight="600" fill="#0f172a">Cosa fa "Conferma" (ogni passo scrive una riga in CvOperations)</text>
+  <g font-size="12.5" fill="#1e293b">
+    <circle cx="62" cy="298" r="11" fill="#6366f1"/><text x="58" y="302" fill="#fff" font-size="11">a</text>
+    <text x="82" y="302">Salva su Blob il CV originale e il CV MCFlash generato</text>
+    <circle cx="62" cy="326" r="11" fill="#6366f1"/><text x="58" y="330" fill="#fff" font-size="11">b</text>
+    <text x="82" y="330">Crea o aggiorna il record su MCFlash (endpoint di scrittura da ricevere) e ottiene l'Id</text>
+    <circle cx="62" cy="354" r="11" fill="#6366f1"/><text x="58" y="358" fill="#fff" font-size="11">c</text>
+    <text x="82" y="358">Indicizza il nuovo CV: candidato nuovo → aggiunge; candidato esistente → rimuove il vecchio documento e lo sostituisce</text>
+    <circle cx="62" cy="382" r="11" fill="#6366f1"/><text x="58" y="386" fill="#fff" font-size="11">d</text>
+    <text x="82" y="386">Aggiorna CvMcflashMap (document_id → Id MCFlash) così la ricerca vede subito il CV giusto</text>
+  </g>
+</svg>

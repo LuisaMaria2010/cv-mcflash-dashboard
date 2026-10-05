@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="500" viewBox="0 0 960 500" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <rect width="960" height="500" fill="#e2e8f0"/>
+  <!-- window -->
+  <rect x="20" y="20" width="920" height="460" rx="10" fill="#ffffff" stroke="#94a3b8"/>
+  <rect x="20" y="20" width="920" height="52" rx="10" fill="#0f172a"/>
+  <rect x="20" y="52" width="920" height="20" fill="#0f172a"/>
+  <text x="40" y="52" font-size="16" font-weight="600" fill="#fff">CV · MCFlash</text>
+  <g font-size="14">
+    <rect x="200" y="30" width="110" height="32" rx="6" fill="#6366f1"/><text x="222" y="51" fill="#fff" font-weight="600">Candidati</text>
+    <text x="340" y="51" fill="#cbd5e1">Crea</text>
+    <text x="400" y="51" fill="#cbd5e1">Aggiorna</text>
+    <text x="490" y="51" fill="#cbd5e1">Operazioni</text>
+  </g>
+
+  <text x="44" y="108" font-size="20" font-weight="600" fill="#0f172a">Candidati</text>
+  <text x="44" y="130" font-size="12.5" fill="#64748b">Fonte: endpoint MCFlash esistente (o tabella CandidatesSnapshot). Ultimo aggiornamento 02/10 09:12</text>
+  <rect x="44" y="146" width="320" height="32" rx="6" fill="#fff" stroke="#cbd5e1"/><text x="56" y="167" font-size="13" fill="#94a3b8">Cerca per codice, nome, ruolo…</text>
+  <rect x="376" y="146" width="120" height="32" rx="6" fill="#fff" stroke="#cbd5e1"/><text x="388" y="167" font-size="13" fill="#64748b">Sede ▾</text>
+  <rect x="508" y="146" width="120" height="32" rx="6" fill="#fff" stroke="#cbd5e1"/><text x="520" y="167" font-size="13" fill="#64748b">CV: tutti ▾</text>
+  <rect x="770" y="146" width="146" height="32" rx="6" fill="#16a34a"/><text x="786" y="167" font-size="13" fill="#fff" font-weight="600">+ Nuovo candidato</text>
+
+  <!-- table -->
+  <rect x="44" y="194" width="872" height="34" fill="#f1f5f9"/>
+  <g font-size="12.5" font-weight="600" fill="#334155">
+    <text x="56" y="216">Codice</text><text x="136" y="216">Nome</text><text x="300" y="216">Ruolo</text>
+    <text x="490" y="216">Sede</text><text x="590" y="216">Seniority</text><text x="690" y="216">CV indicizzato</text>
+  </g>
+  <g font-size="12.5" fill="#0f172a">
+    <text x="56" y="252">DCA</text><text x="136" y="252">D. C. A.</text><text x="300" y="252">Ingegnere meccanico</text><text x="490" y="252">Torino</text><text x="590" y="252">Senior</text>
+    <rect x="690" y="238" width="78" height="22" rx="11" fill="#dcfce7"/><text x="704" y="253" font-size="11.5" fill="#166534">sì · v3</text>
+    <rect x="820" y="236" width="86" height="26" rx="6" fill="#fff" stroke="#6366f1"/><text x="834" y="253" fill="#4338ca">Aggiorna</text>
+    <line x1="44" y1="270" x2="916" y2="270" stroke="#e2e8f0"/>
+
+    <text x="56" y="294">DCA</text><text x="136" y="294">D. C. A. (omonimo)</text><text x="300" y="294">Data analyst</text><text x="490" y="294">Milano</text><text x="590" y="294">Mid</text>
+    <rect x="690" y="280" width="78" height="22" rx="11" fill="#dcfce7"/><text x="704" y="295" font-size="11.5" fill="#166534">sì · v1</text>
+    <rect x="820" y="278" width="86" height="26" rx="6" fill="#fff" stroke="#6366f1"/><text x="834" y="295" fill="#4338ca">Aggiorna</text>
+    <line x1="44" y1="312" x2="916" y2="312" stroke="#e2e8f0"/>
+
+    <text x="56" y="336">RSM</text><text x="136" y="336">R. S. M.</text><text x="300" y="336">Project manager</text><text x="490" y="336">Roma</text><text x="590" y="336">Senior</text>
+    <rect x="690" y="322" width="78" height="22" rx="11" fill="#fee2e2"/><text x="708" y="337" font-size="11.5" fill="#991b1b">manca</text>
+    <rect x="820" y="320" width="86" height="26" rx="6" fill="#fff" stroke="#6366f1"/><text x="834" y="337" fill="#4338ca">Aggiorna</text>
+    <line x1="44" y1="354" x2="916" y2="354" stroke="#e2e8f0"/>
+
+    <text x="56" y="378">LBF</text><text x="136" y="378">L. B. F.</text><text x="300" y="378">Sviluppatore Java</text><text x="490" y="378">Bologna</text><text x="590" y="378">Junior</text>
+    <rect x="690" y="364" width="78" height="22" rx="11" fill="#dcfce7"/><text x="704" y="379" font-size="11.5" fill="#166534">sì · v2</text>
+    <rect x="820" y="362" width="86" height="26" rx="6" fill="#fff" stroke="#6366f1"/><text x="834" y="379" fill="#4338ca">Aggiorna</text>
+  </g>
+
+  <text x="44" y="430" font-size="12.5" fill="#64748b">"Aggiorna" apre la pagina Aggiorna già impostata su quel candidato.</text>
+  <text x="44" y="450" font-size="12.5" fill="#64748b">"+ Nuovo candidato" apre la pagina Crea vuota. Sono pagine intere, non finestre sovrapposte.</text>
+</svg>

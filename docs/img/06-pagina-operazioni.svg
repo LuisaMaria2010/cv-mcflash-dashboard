@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="420" viewBox="0 0 960 420" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <rect width="960" height="420" fill="#e2e8f0"/>
+  <rect x="20" y="20" width="920" height="380" rx="10" fill="#ffffff" stroke="#94a3b8"/>
+  <rect x="20" y="20" width="920" height="52" rx="10" fill="#0f172a"/>
+  <rect x="20" y="52" width="920" height="20" fill="#0f172a"/>
+  <text x="40" y="52" font-size="16" font-weight="600" fill="#fff">CV · MCFlash</text>
+  <g font-size="14">
+    <text x="222" y="51" fill="#cbd5e1">Candidati</text>
+    <text x="340" y="51" fill="#cbd5e1">Crea</text>
+    <text x="400" y="51" fill="#cbd5e1">Aggiorna</text>
+    <rect x="474" y="30" width="116" height="32" rx="6" fill="#6366f1"/><text x="492" y="51" fill="#fff" font-weight="600">Operazioni</text>
+  </g>
+
+  <text x="44" y="108" font-size="20" font-weight="600" fill="#0f172a">Operazioni di salvataggio</text>
+  <g font-size="13">
+    <rect x="44" y="122" width="150" height="56" rx="8" fill="#f0fdf4" stroke="#bbf7d0"/><text x="58" y="146" fill="#166534">Completate oggi</text><text x="58" y="168" font-size="18" font-weight="600" fill="#14532d">12</text>
+    <rect x="206" y="122" width="150" height="56" rx="8" fill="#eff6ff" stroke="#bfdbfe"/><text x="220" y="146" fill="#1e40af">In corso</text><text x="220" y="168" font-size="18" font-weight="600" fill="#1e3a8a">1</text>
+    <rect x="368" y="122" width="150" height="56" rx="8" fill="#fef2f2" stroke="#fecaca"/><text x="382" y="146" fill="#991b1b">Fallite</text><text x="382" y="168" font-size="18" font-weight="600" fill="#7f1d1d">1</text>
+  </g>
+
+  <rect x="44" y="194" width="872" height="30" fill="#f1f5f9"/>
+  <g font-size="12" font-weight="600" fill="#334155">
+    <text x="56" y="214">Quando</text><text x="140" y="214">Candidato</text><text x="250" y="214">Tipo</text>
+    <text x="340" y="214">Blob</text><text x="420" y="214">MCFlash</text><text x="510" y="214">Indice</text><text x="590" y="214">Mappa</text><text x="680" y="214">Utente</text>
+  </g>
+  <g font-size="12" fill="#0f172a">
+    <text x="56" y="248">09:44</text><text x="140" y="248">DCA</text><text x="250" y="248">aggiorna</text>
+    <text x="340" y="248" fill="#16a34a">✔</text><text x="420" y="248" fill="#16a34a">✔</text><text x="510" y="248" fill="#16a34a">✔ sostituito</text><text x="590" y="248" fill="#16a34a">✔</text><text x="680" y="248">l.serrano</text>
+    <line x1="44" y1="262" x2="916" y2="262" stroke="#e2e8f0"/>
+    <text x="56" y="284">09:31</text><text x="140" y="284">NEW · PLR</text><text x="250" y="284">crea</text>
+    <text x="340" y="284" fill="#16a34a">✔</text><text x="420" y="284" fill="#16a34a">✔</text><text x="510" y="284" fill="#2563eb">… in coda</text><text x="590" y="284" fill="#94a3b8">–</text><text x="680" y="284">m.rossi</text>
+    <line x1="44" y1="298" x2="916" y2="298" stroke="#e2e8f0"/>
+    <text x="56" y="320">09:02</text><text x="140" y="320">RSM</text><text x="250" y="320">aggiorna</text>
+    <text x="340" y="320" fill="#16a34a">✔</text><text x="420" y="320" fill="#dc2626">✖ HTTP 409</text><text x="510" y="320" fill="#94a3b8">–</text><text x="590" y="320" fill="#94a3b8">–</text><text x="680" y="320">l.serrano</text>
+    <rect x="820" y="306" width="80" height="22" rx="6" fill="#fff" stroke="#dc2626"/><text x="838" y="321" fill="#b91c1c">Riprova</text>
+  </g>
+  <text x="44" y="370" font-size="12.5" fill="#64748b">Ogni riga è un'operazione in CvOperations; una colonna per passo. "Riprova" riparte dal passo fallito.</text>
+</svg>

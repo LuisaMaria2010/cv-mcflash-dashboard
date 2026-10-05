@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="560" viewBox="0 0 960 560" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <rect width="960" height="560" fill="#e2e8f0"/>
+  <rect x="20" y="20" width="920" height="520" rx="10" fill="#ffffff" stroke="#94a3b8"/>
+  <rect x="20" y="20" width="920" height="52" rx="10" fill="#0f172a"/>
+  <rect x="20" y="52" width="920" height="20" fill="#0f172a"/>
+  <text x="40" y="52" font-size="16" font-weight="600" fill="#fff">CV · MCFlash</text>
+  <g font-size="14">
+    <text x="222" y="51" fill="#cbd5e1">Candidati</text>
+    <text x="340" y="51" fill="#cbd5e1">Crea</text>
+    <rect x="386" y="30" width="100" height="32" rx="6" fill="#6366f1"/><text x="404" y="51" fill="#fff" font-weight="600">Aggiorna</text>
+    <text x="510" y="51" fill="#cbd5e1">Operazioni</text>
+  </g>
+
+  <text x="44" y="106" font-size="19" font-weight="600" fill="#0f172a">Aggiorna · DCA · Ingegnere meccanico · Torino</text>
+  <text x="44" y="128" font-size="12.5" fill="#64748b">Candidato trovato per codice DCA + nome. Il nuovo CV sostituirà il v3 nell'indice.</text>
+
+  <!-- col 1 original -->
+  <rect x="44" y="146" width="270" height="320" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="58" y="170" font-size="13.5" font-weight="600" fill="#334155">1 · CV caricato</text>
+  <rect x="58" y="182" width="242" height="34" rx="6" fill="#fff" stroke="#94a3b8" stroke-dasharray="4 3"/>
+  <text x="70" y="204" font-size="12" fill="#64748b">Trascina PDF/DOCX o scegli file</text>
+  <rect x="72" y="230" width="214" height="222" fill="#fff" stroke="#e2e8f0"/>
+  <g fill="#cbd5e1"><rect x="86" y="246" width="120" height="10"/><rect x="86" y="266" width="180" height="6"/><rect x="86" y="280" width="170" height="6"/><rect x="86" y="294" width="185" height="6"/><rect x="86" y="318" width="90" height="8"/><rect x="86" y="334" width="180" height="6"/><rect x="86" y="348" width="160" height="6"/><rect x="86" y="362" width="175" height="6"/><rect x="86" y="386" width="90" height="8"/><rect x="86" y="402" width="180" height="6"/><rect x="86" y="416" width="140" height="6"/></g>
+
+  <!-- col 2 form -->
+  <rect x="330" y="146" width="290" height="320" rx="8" fill="#fefce8" stroke="#fde68a"/>
+  <text x="344" y="170" font-size="13.5" font-weight="600" fill="#713f12">2 · Dati estratti (modificabili)</text>
+  <g font-size="11.5" fill="#713f12">
+    <text x="344" y="194">Codice</text><rect x="420" y="182" width="186" height="20" rx="4" fill="#fff" stroke="#e5e7eb"/><text x="428" y="196" fill="#0f172a">DCA</text>
+    <text x="344" y="222">Nome</text><rect x="420" y="210" width="186" height="20" rx="4" fill="#fff" stroke="#e5e7eb"/><text x="428" y="224" fill="#0f172a">D. C. A.</text>
+    <text x="344" y="250">Ruolo</text><rect x="420" y="238" width="186" height="20" rx="4" fill="#fff" stroke="#f59e0b" stroke-width="1.5"/><text x="428" y="252" fill="#0f172a">Ingegnere meccanico</text>
+    <text x="344" y="278">Città</text><rect x="420" y="266" width="186" height="20" rx="4" fill="#fff" stroke="#e5e7eb"/><text x="428" y="280" fill="#0f172a">Torino</text>
+    <text x="344" y="306">Nascita</text><rect x="420" y="294" width="186" height="20" rx="4" fill="#fff" stroke="#e5e7eb"/><text x="428" y="308" fill="#0f172a">1985-03-12</text>
+    <text x="344" y="334">Skill</text><rect x="420" y="322" width="186" height="20" rx="4" fill="#fff" stroke="#e5e7eb"/><text x="428" y="336" fill="#0f172a">catia · fem · solidworks</text>
+    <text x="344" y="362">Esperienze</text><rect x="420" y="350" width="186" height="48" rx="4" fill="#fff" stroke="#e5e7eb"/><text x="428" y="366" fill="#0f172a">2019–oggi · Azienda X</text><text x="428" y="384" fill="#0f172a">2012–2019 · Azienda Y</text>
+    <text x="344" y="418">Lingue</text><rect x="420" y="406" width="186" height="20" rx="4" fill="#fff" stroke="#e5e7eb"/><text x="428" y="420" fill="#0f172a">inglese C1</text>
+  </g>
+  <text x="344" y="452" font-size="11" fill="#a16207">● campo modificato · bozza salvata 09:41</text>
+
+  <!-- col 3 preview -->
+  <rect x="636" y="146" width="280" height="320" rx="8" fill="#f0f9ff" stroke="#bae6fd"/>
+  <text x="650" y="170" font-size="13.5" font-weight="600" fill="#0c4a6e">3 · Anteprima CV MCFlash</text>
+  <rect x="664" y="182" width="224" height="270" fill="#fff" stroke="#e2e8f0"/>
+  <rect x="664" y="182" width="224" height="30" fill="#0f172a"/><text x="676" y="202" font-size="11.5" fill="#fff" font-weight="600">MC · Curriculum</text>
+  <g font-size="10.5" fill="#0f172a">
+    <text x="676" y="232">Nome   DCA</text><text x="676" y="248">Data di nascita   12/03/1985</text><text x="676" y="264">Città   Torino</text><text x="676" y="280">Ruolo   Ingegnere meccanico</text>
+    <text x="676" y="306" font-weight="600">Overview</text>
+    <text x="676" y="356" font-weight="600">Experience</text>
+    <text x="676" y="412" font-weight="600">Education</text>
+  </g>
+  <g fill="#e2e8f0"><rect x="676" y="314" width="196" height="5"/><rect x="676" y="324" width="180" height="5"/><rect x="676" y="334" width="190" height="5"/><rect x="676" y="364" width="196" height="5"/><rect x="676" y="374" width="170" height="5"/><rect x="676" y="384" width="186" height="5"/><rect x="676" y="420" width="150" height="5"/></g>
+
+  <!-- action bar -->
+  <rect x="44" y="482" width="872" height="44" rx="8" fill="#f1f5f9"/>
+  <rect x="58" y="490" width="128" height="28" rx="6" fill="#fff" stroke="#94a3b8"/><text x="74" y="509" font-size="12.5" fill="#334155">Salva bozza</text>
+  <rect x="196" y="490" width="160" height="28" rx="6" fill="#fff" stroke="#94a3b8"/><text x="210" y="509" font-size="12.5" fill="#334155">Scarica .docx MCFlash</text>
+  <rect x="726" y="490" width="176" height="28" rx="6" fill="#ea580c"/><text x="742" y="509" font-size="12.5" fill="#fff" font-weight="600">Conferma e carica</text>
+</svg>

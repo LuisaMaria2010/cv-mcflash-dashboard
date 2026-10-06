@@ -1,0 +1,27 @@
+# Tema della dashboard: colori del modello CV MC (blu #1F3864, testo #2C2C2C).
+[theme]
+base = "light"
+primaryColor = "#1F3864"
+backgroundColor = "#F4F7FC"
+secondaryBackgroundColor = "#E6EDF8"
+textColor = "#2C2C2C"
+linkColor = "#2E5AAC"
+borderColor = "#D3DCEB"
+dataframeBorderColor = "#D3DCEB"
+dataframeHeaderBackgroundColor = "#1F3864"
+dataframeHeaderTextColor = "#FFFFFF"
+blueColor = "#2E5AAC"
+greenColor = "#2E8B57"
+orangeColor = "#E07B00"
+font = "Barlow:https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap"
+headingFont = "Barlow:https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap"
+headingFontWeights = [700, 600, 600, 600, 600, 600]
+baseRadius = "0.6rem"
+buttonRadius = "0.6rem"
+showWidgetBorder = true
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false

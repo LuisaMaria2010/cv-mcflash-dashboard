@@ -2,9 +2,39 @@
 
 Dashboard per portare un CV su MCFlash. Si carica il CV e si estraggono i dati. Chi ha caricato il file li corregge, poi genera il CV nel modello MCFlash e lo vede in anteprima. Alla conferma la dashboard crea o aggiorna il candidato su MCFlash e salva e indicizza i CV.
 
-Il backend resta nel repo esistente **Autocompilazione CV_ON_SITE** (Azure Functions): lì c'è già l'estrazione e lì vanno i nuovi endpoint. Questo repo contiene solo l'interfaccia, che per ora gira in locale e non viene pubblicata come web app.
+Il backend resta nel repo esistente **Autocompilazione CV_ON_SITE** (Azure Functions): lì c'è già l'estrazione e lì vanno i nuovi endpoint. Questo repo contiene solo l'interfaccia, che per ora gira in locale. Per il front end non si usano servizi Azure: se andrà pubblicata, si userà un hosting gratuito.
 
-> Stato: idea e piano. Nessun codice ancora. Il piano di lavoro è in [docs/PIANO.md](docs/PIANO.md).
+> Stato: fasi 1–6 fatte: lista dei candidati, caricamento ed estrazione del CV, form di revisione con bozze salvate, anteprima del CV MC, conferma (storage, MCFlash finto, indice, mappa) e monitor delle operazioni. Prossima: rifinitura e prova con CV reali (fase 7). Il piano di lavoro è in [docs/PIANO.md](docs/PIANO.md).
+
+## Avvio in locale
+
+1. **Backend** (repo Autocompilazione CV_ON_SITE, con il suo `.venv` attivo). Per caricare solo gli endpoint della dashboard, senza i trigger su blob e code dello storage reale:
+   ```
+   func start --functions candidates candidate_detail candidates_match roles cv_filename mc_levels extract save_draft get_draft delete_draft list_drafts draft_original cv_render cv_commit_route get_operation retry_operation list_operations
+   ```
+2. **Dashboard** (questo repo):
+   ```
+   py -3.12 -m venv .venv
+   .venv\Scripts\pip install -r requirements.txt
+   copy .env.example .env        # BACKEND_URL, e FUNCTION_KEY se il backend è su Azure
+   .venv\Scripts\streamlit run app.py
+   ```
+   Si apre su http://localhost:8501.
+3. **Test**: `.venv\Scripts\python -m pytest`
+
+### Struttura
+
+```
+app.py                     # entry Streamlit, tab in alto (st.navigation)
+views/candidati.py         # home: lista, ricerca, filtri, Aggiorna per riga
+views/aggiorna.py          # aggiorna?id=<IdMCFlash>
+views/crea.py              # nuovo candidato (fase 3)
+views/operazioni.py        # monitor (fase 6)
+dashboard/config.py        # BACKEND_URL, FUNCTION_KEY da .env o dai secrets di Streamlit
+dashboard/api.py           # client HTTP verso il backend
+dashboard/components/      # chiamate con cache, testi derivati dalle righe candidato
+tests/
+```
 
 ---
 
@@ -65,7 +95,7 @@ Il salvataggio usa gli stessi container e la stessa pipeline di ingestione di og
 
 ## Scelte tecniche proposte
 
-- **Frontend**: Python + [Streamlit](https://streamlit.io), multipagina, avviato in locale con `streamlit run`. È lo stesso linguaggio del backend, ogni tab è una pagina vera e non serve un servizio web app. Se più avanti servirà pubblicarlo, si può spostare su App Service o Container Apps senza riscriverlo.
+- **Frontend**: Python + [Streamlit](https://streamlit.io), multipagina, avviato in locale con `streamlit run`. È lo stesso linguaggio del backend, ogni tab è una pagina vera e non serve un servizio web app. Niente servizi Azure per il front end: se più avanti servirà pubblicarlo, si usa un hosting gratuito (proposta: Streamlit Community Cloud, app privata con accesso solo agli invitati), senza riscriverlo.
 - **Anteprima CV originale**: PDF mostrato direttamente; DOCX convertito in HTML per la visualizzazione.
 - **CV MCFlash**: generato dal backend a partire dal modello `.docx` con segnaposto. L'anteprima è la conversione in PDF o HTML.
 - **Bozze**: salvate dal backend (Blob `cv-drafts/`) e non solo nel browser, così il backup sopravvive al cambio di PC.

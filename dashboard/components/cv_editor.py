@@ -151,7 +151,8 @@ def save(ed: dict[str, Any], *, force: bool = False) -> bool:
 
 # ---------------------------------------------------------------- caricamento ed estrazione
 
-def upload_and_extract(kind: str, id_mcflash: str | None = None) -> str | None:
+def upload_and_extract(kind: str, id_mcflash: str | None = None,
+                       adjust: Callable[[dict[str, Any]], dict[str, Any]] | None = None) -> str | None:
     """Caricatore del CV + pulsante "Estrai". Restituisce il draft_id della bozza creata."""
     uploaded = st.file_uploader("CV del candidato (PDF o DOCX)", type=["pdf", "docx"],
                                 key=f"upload_{kind}_{id_mcflash or ''}")
@@ -160,17 +161,39 @@ def upload_and_extract(kind: str, id_mcflash: str | None = None) -> str | None:
     st.caption(f"«{uploaded.name}» · {uploaded.size / 1024:.0f} KB")
     if not st.button("Estrai i dati dal CV", type="primary", icon=":material/auto_awesome:"):
         return None
-    data = uploaded.getvalue()
+    return extract_to_draft(kind, id_mcflash, uploaded.getvalue(), uploaded.name, adjust=adjust)
+
+
+def start_from_data(kind: str, id_mcflash: str | None, edited: dict[str, Any]) -> str | None:
+    """Bozza senza CV, con i dati gia' noti (es. il record MCFlash): il form si
+    compila da qui e il CV si aggiunge dopo, caricandolo o cercandolo nell'archivio."""
+    draft_id = uuid.uuid4().hex
+    payload = {"kind": kind, "id_mcflash": id_mcflash, "extracted": edited, "edited": edited,
+               "user": load_settings().user or None}
+    if backend.call(api.get_client().save_draft, draft_id, payload) is None:
+        return None
+    backend.list_drafts.clear()
+    forget()
+    return draft_id
+
+
+def extract_to_draft(kind: str, id_mcflash: str | None, data: bytes, filename: str,
+                     label: str = "Estrazione dei dati dal CV…",
+                     adjust: Callable[[dict[str, Any]], dict[str, Any]] | None = None) -> str | None:
+    """Estrae i dati da un CV (caricato o gia' indicizzato) e li salva in una bozza nuova.
+    `adjust` corregge l'estratto prima di salvarlo (es. identita' dal record MCFlash)."""
     client = api.get_client()
-    with st.status("Estrazione dei dati dal CV…", expanded=True) as status:
+    with st.status(label, expanded=True) as status:
         st.write("L'LLM legge il CV e compila i campi del modello MC: per un CV lungo servono fino a un paio di minuti.")
-        extraction = backend.call(client.extract, data, uploaded.name)
+        extraction = backend.call(client.extract, data, filename)
         if extraction is None:
             status.update(label="Estrazione non riuscita", state="error")
             return None
         draft_id = uuid.uuid4().hex
         original_blob = extraction.pop("original_blob", None)
-        original_filename = extraction.pop("original_filename", None) or uploaded.name
+        original_filename = extraction.pop("original_filename", None) or filename
+        if adjust:
+            extraction = adjust(extraction)
         payload = {"kind": kind, "id_mcflash": id_mcflash, "extracted": extraction, "edited": extraction,
                    "original_blob": original_blob, "original_filename": original_filename,
                    "user": load_settings().user or None}
@@ -700,9 +723,12 @@ def mc_preview(ed: dict[str, Any]) -> None:
 
 def workspace(ed: dict[str, Any], on_discarded: Callable[[], None],
               above: Callable[[dict[str, Any]], None] | None = None,
-              candidate: dict[str, Any] | None = None) -> None:
+              candidate: dict[str, Any] | None = None,
+              no_cv: Callable[[dict[str, Any]], None] | None = None) -> None:
     """Barra di riepilogo e tre colonne: CV caricato, dati estratti, anteprima del CV MC.
-    Una bozza gia' confermata mostra invece lo stato della sua operazione."""
+    Una bozza senza CV (partita dai dati MCFlash) mostra nella prima colonna `no_cv`:
+    caricamento e ricerca nell'archivio. Una bozza gia' confermata mostra invece
+    lo stato della sua operazione."""
     if ed.get("operation_id"):
         committed_view(ed)
         return
@@ -713,8 +739,14 @@ def workspace(ed: dict[str, Any], on_discarded: Callable[[], None],
         st.markdown("##### :material/edit_note: 2 · Dati estratti")
         form(ed, candidate)
     with col_cv:
-        st.markdown("##### :material/upload_file: 1 · CV caricato")
-        cv_preview.show_original(ed["original_filename"], original_bytes(ed))
+        if not ed.get("original_filename") and no_cv:
+            st.markdown("##### :material/upload_file: 1 · CV")
+            st.info("Nessun CV: il form è compilato con i dati già noti. Carica il CV oppure cercalo nell'archivio.",
+                    icon=":material/description:")
+            no_cv(ed)
+        else:
+            st.markdown("##### :material/upload_file: 1 · CV caricato")
+            cv_preview.show_original(ed["original_filename"], original_bytes(ed))
     with col_mc:
         st.markdown("##### :material/preview: 3 · Anteprima CV MCFlash")
         mc_preview(ed)

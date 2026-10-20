@@ -83,3 +83,31 @@ def test_missing_envelope_is_an_error():
     session = _Session(_Resp(200, [1, 2]))
     with pytest.raises(BackendError, match="busta"):
         _client(session).roles()
+
+
+def test_candidate_cv_returns_filename_and_bytes():
+    resp = _Resp(200, None, {"Content-Disposition": 'inline; filename="Skill Tecnico_DCA_MC.docx"'})
+    resp.content = b"DOCX"
+    session = _Session(resp)
+    assert _client(session).candidate_cv(1884) == ("Skill Tecnico_DCA_MC.docx", b"DOCX")
+    assert session.calls[0][1] == "http://backend:7071/api/candidates/1884/cv"
+
+
+def test_candidate_cv_error():
+    session = _Session(_Resp(404, {"data": None, "error": "Il candidato 3 non ha un CV indicizzato"}))
+    with pytest.raises(BackendError, match="non ha un CV"):
+        _client(session).candidate_cv(3)
+
+
+def test_missing_route_explains_how_to_fix():
+    resp = _Resp(404, None)
+    resp.url = "http://backend:7071/api/candidates/3/cv"
+    with pytest.raises(BackendError, match="non ha /api/candidates/3/cv.*func start"):
+        _client(_Session(resp)).candidate_cv(3)
+
+
+def test_hide_candidate_posts_command():
+    session = _Session(_Resp(200, {"data": {"id": "12", "nascosto": True, "modalita": "finto"}}))
+    assert _client(session).hide_candidate(12, user="tester")["nascosto"] is True
+    method, url, kwargs = session.calls[0]
+    assert method == "POST" and url.endswith("/api/candidates/12/nascondi") and kwargs["json"] == {"user": "tester"}

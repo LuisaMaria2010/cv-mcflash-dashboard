@@ -61,10 +61,60 @@ class _FakeClient:
         return saved
 
     def list_drafts(self, *, kind=None, id_mcflash=None):
-        return []
+        return [{"draft_id": d["draft_id"], "original_filename": d.get("original_filename")}
+                for d in self.drafts.values()
+                if (not kind or d["kind"] == kind) and (not id_mcflash or d["id_mcflash"] == id_mcflash)
+                and not d.get("operation_id")]
+
+    extracts: list = []
+
+    def candidate_cv(self, candidate_id):
+        row = next(r for r in ROWS if r["id"] == str(candidate_id))
+        if not row["cv"]:
+            raise api.BackendError("Errore 404 dal backend: nessun CV", status=404)
+        return row["cv"]["file"], b"%PDF-1.4 cv attuale"
+
+    def extract(self, data, filename):
+        self.extracts.append((filename, data))
+        return {**EXTRACTED, "original_blob": f"orig/{filename}", "original_filename": filename}
 
     def draft_original(self, draft_id):
         raise api.BackendError("Errore 404 dal backend: CV originale non trovato", status=404)
+
+    finds: list = []
+    links: list = []
+    found = [
+        {"document_id": "skill_tecnico_mro_mc", "file": "Skill_Tecnico_MRO_MC.pdf", "codici": ["MRO"], "nato": "1996-01-01",
+         "eta_cv": 30, "citta": "Roma", "ruolo_cv": "SAP Consultant", "livello": 1, "livello_testo": "",
+         "eta_delta": 0, "mestiere_ok": True, "motivo": "stesso mestiere", "stessa_citta": True,
+         "collegato_a": None, "gia_suo": False, "riservato": None, "scelto": True, "modo": "codice"},
+        {"document_id": "skill_tecnico_mro", "file": "Skill_Tecnico_MRO.pdf", "codici": ["MRO"], "nato": "1970-01-01",
+         "eta_cv": 56, "citta": "Milano", "ruolo_cv": "COBOL", "livello": 9, "livello_testo": "",
+         "eta_delta": 26, "mestiere_ok": False, "motivo": "altro mestiere", "stessa_citta": False,
+         "collegato_a": {"id": "77", "nome": "Marta Rocca"}, "gia_suo": False, "riservato": None, "scelto": False,
+         "modo": "codice"},
+    ]
+    esito = {"decisione": "assegnato", "motivo": "eta' e mestiere compatibili", "document_id": "skill_tecnico_mro_mc",
+             "file": "Skill_Tecnico_MRO_MC.pdf"}
+
+    def find_cvs(self, *, modo="codice", escludi=None, **person):
+        self.finds.append((modo, tuple(escludi or []), person))
+        codice = modo == "codice"
+        return {"persona": person, "modo": modo, "esito": self.esito if codice else None,
+                "risultati": self.found if codice else [], "warnings": []}
+
+    def cv_file(self, document_id):
+        return f"{document_id}.pdf", b"%PDF-1.4 archivio"
+
+    def link_cv(self, id_mcflash, document_id, *, user=None):
+        self.links.append((str(id_mcflash), document_id))
+        return {"id_mcflash": str(id_mcflash), "document_id": document_id, "file": f"{document_id}.pdf"}
+
+    hidden: list = []
+
+    def hide_candidate(self, candidate_id, *, user=None):
+        self.hidden.append(str(candidate_id))
+        return {"id": str(candidate_id), "nascosto": True, "modalita": "finto"}
 
     def roles(self):
         return [{"role": "Sviluppatore Java", "label": "Sviluppatore Java", "budget": {"junior": 200, "mid": 280, "senior": 350}}]
@@ -149,7 +199,8 @@ def _draft(kind="crea", id_mcflash=None):
 @pytest.fixture
 def fake(monkeypatch):
     client = _FakeClient()
-    client.drafts, client.saves, client.renders, client.commits = {}, [], [], []
+    client.drafts, client.saves, client.renders, client.commits, client.extracts = {}, [], [], [], []
+    client.finds, client.links, client.hidden = [], [], []
     client.op_status = "in_corso"
     client.ops, client.index_ready, client.retries = [], False, []
     monkeypatch.setattr(api, "get_client", lambda: client)
@@ -184,19 +235,23 @@ def test_home_shows_every_candidate_in_a_table(fake):
 
 def test_home_filters(fake):
     at = _app().run()
-    at.selectbox(key="f_sede").set_value("Roma").run()
+    at.multiselect(key="f_sede").set_value(["Roma"]).run()
     assert list(_table(at)["Nome"]) == ["Mario Rossi", "Luca Bianchi"]
     at.selectbox(key="f_cv").set_value("manca").run()
     assert at.query_params["sede"] == "Roma" and at.query_params["cv"] == "manca"
-    at.text_input(key="f_q").set_value("rossi").run()
+    at.text_input(key="f_nome_completo").set_value("rossi").run()
     assert list(_table(at)["Nome"]) == ["Mario Rossi"]
+    at.slider(key="f_eta").set_value((26, 35)).run()
+    assert list(_table(at)["Nome"]) == ["Mario Rossi"] and at.query_params["eta"] == "26-35"
+    at.button[0].click().run()  # Azzera filtri
+    assert len(_table(at)) == 3 and "sede" not in at.query_params
 
 
 def test_home_reads_filters_from_url(fake):
     at = _app()
-    at.query_params["q"] = "carli"
+    at.query_params["nome_completo"] = "carli"
     at.run()
-    assert at.text_input(key="f_q").value == "carli"
+    assert at.text_input(key="f_nome_completo").value == "carli"
     assert list(_table(at)["Nome"]) == ["Davide Carli"]
 
 
@@ -208,15 +263,79 @@ def test_home_shows_backend_error(monkeypatch):
     assert any("non raggiungibile" in e.value for e in at.error)
 
 
-def test_aggiorna_from_url(fake):
-    at = _app()
-    at.switch_page("views/aggiorna.py")
-    at.query_params["id"] = "1"
-    at.run()
+def test_aggiorna_upload_new_cv_from_url(fake):
+    at = _open("views/aggiorna.py", id="1", nuovo="1")
     assert not at.exception
     assert "Aggiorna · DCA · PM · Torino" in _texts(at)
     assert any("sostituirà il v3" in i.value for i in at.info)
     assert "Immediata" in _texts(at)
+    assert fake.extracts == []  # con nuovo=1 il CV attuale non si estrae
+
+
+def test_aggiorna_opens_current_cv_as_draft(fake):
+    at = _open("views/aggiorna.py", id="1")
+    assert not at.exception, at.exception
+    assert fake.extracts == [("Skill Tecnico_DCA_MC Engineering.pdf", b"%PDF-1.4 cv attuale")]
+    draft_id, payload = fake.saves[0]
+    assert payload["kind"] == "aggiorna" and payload["id_mcflash"] == "1"
+    assert payload["original_filename"] == "Skill Tecnico_DCA_MC Engineering.pdf"
+    assert payload["edited"]["trittico"] == "DCA" and payload["edited"]["full_name"] == "Davide Carli"
+    assert at.query_params["bozza"] == [draft_id] or at.query_params["bozza"] == draft_id
+    assert "Carica un CV nuovo" in [p.proto.label for p in at.get("page_link")]
+
+
+def test_aggiorna_resumes_last_draft_instead_of_extracting(fake):
+    fake.drafts[DRAFT_ID] = _draft("aggiorna", "1")
+    at = _open("views/aggiorna.py", id="1")
+    assert not at.exception
+    assert fake.extracts == []
+    assert at.query_params["bozza"] in (DRAFT_ID, [DRAFT_ID])
+
+
+def test_aggiorna_without_cv_opens_form_with_mcflash_data(fake):
+    at = _open("views/aggiorna.py", id="2")
+    assert not at.exception, at.exception
+    assert fake.extracts == []  # niente da estrarre: si parte dai dati MCFlash
+    draft_id, payload = fake.saves[0]
+    edited = payload["edited"]
+    assert (edited["first_name"], edited["last_name"], edited["trittico"], edited["age"], edited["location"]) ==         ("Mario", "Rossi", "MRO", 30, "Roma")
+    assert payload["extracted"] == edited and "original_blob" not in payload
+    assert at.query_params["bozza"] in (draft_id, [draft_id])
+    assert any("Nessun CV: il form è compilato" in i.value for i in at.info)
+    assert any(b.label == "Cerca nell'archivio" for b in at.button)
+
+
+def test_aggiorna_archive_search_and_link(fake):
+    at = _open("views/aggiorna.py", id="2")
+    next(b for b in at.button if b.label == "Cerca nell'archivio").click().run()
+    assert fake.finds[0][0] == "codice" and fake.finds[0][2] == {"id_mcflash": "2"}
+    texts = " ".join(m.value for m in at.markdown)
+    assert "Skill_Tecnico_MRO_MC.pdf" in texts and "Skill_Tecnico_MRO.pdf" in texts  # il secondo tra gli scartati
+    assert any("Già collegato a Marta Rocca" in w.value for w in at.warning)
+    assert any("il CV è **Skill_Tecnico_MRO_MC.pdf**" in m.value for m in at.success)
+    next(b for b in at.button if b.label == "Collega").click().run()
+    assert fake.links == [("2", "skill_tecnico_mro_mc")]
+
+
+def test_aggiorna_archive_search_extended(fake):
+    at = _open("views/aggiorna.py", id="2")
+    next(b for b in at.button if b.label == "Cerca nell'archivio").click().run()
+    next(b for b in at.button if b.label == "Non mi convince: cerca ancora").click().run()
+    modo, escludi, _ = fake.finds[1]
+    assert modo == "esteso" and set(escludi) == {"skill_tecnico_mro_mc", "skill_tecnico_mro"}
+    assert any("Ricerca estesa fatta" in c.value for c in at.caption)
+
+
+def test_crea_archive_search_uses_typed_name(fake):
+    at = _open("views/crea.py")
+    at.text_input(key="crea_new_nome").set_value("Mario")
+    at.text_input(key="crea_new_cognome").set_value("Rossi")
+    assert fake.finds == []  # scrivere non avvia la ricerca: serve il pulsante
+    next(b for b in at.button if b.label == "Cerca nell'archivio").click().run()
+    assert fake.finds[0][2]["nome"] == "Mario" and fake.finds[0][2]["cognome"] == "Rossi"
+    next(b for b in at.button if b.label == "Usa il CV").click().run()
+    assert fake.extracts == [("skill_tecnico_mro_mc.pdf", b"%PDF-1.4 archivio")]
+    assert fake.saves[0][1]["kind"] == "crea"
 
 
 def test_aggiorna_without_id_and_unknown_id(fake):
@@ -380,3 +499,20 @@ def test_operations_page_filters(fake):
     assert list(at.dataframe[0].value["Candidato"]) == ["Davide Carli (DCA)"]
     at = _open("views/operazioni.py", utente="nessuno")
     assert any("Nessuna operazione" in i.value for i in at.info)
+
+
+def test_crea_archive_search_by_code_only(fake):
+    at = _open("views/crea.py")
+    at.text_input(key="crea_new_codice").set_value("lse")
+    next(b for b in at.button if b.label == "Cerca nell'archivio").click().run()
+    assert fake.finds[0][2]["trittico"] == "LSE" and fake.finds[0][2]["nome"] == ""
+    assert any("Codici cercati" in c.value for c in at.caption) or at.success
+
+
+def test_aggiorna_hide_candidate_needs_confirmation(fake):
+    at = _open("views/aggiorna.py", id="2", nuovo="1")
+    go = next(b for b in at.button if b.label == "Nascondi")
+    assert go.disabled and fake.hidden == []
+    at.checkbox(key="hide_agg_2_sure").check().run()
+    next(b for b in at.button if b.label == "Nascondi").click().run()
+    assert fake.hidden == ["2"]

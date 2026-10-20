@@ -1,6 +1,6 @@
 """Dashboard CV -> MCFlash. Avvio: streamlit run app.py
 
-Navigazione con le tab in alto. Lo stato tra le pagine passa dall'URL
+Navigazione nella barra laterale. Lo stato tra le pagine passa dall'URL
 (st.query_params, es. aggiorna?id=1884) e da st.session_state, mai da finestre
 modali: ogni pagina si puo' aprire e salvare tra i preferiti.
 """
@@ -9,6 +9,7 @@ from __future__ import annotations
 import streamlit as st
 
 from dashboard.components import ui
+from dashboard.config import load_settings
 
 st.set_page_config(page_title="CV · MCFlash", page_icon=":material/badge:", layout="wide")
 ui.inject_css()
@@ -20,4 +21,7 @@ PAGES = [
     st.Page("views/operazioni.py", title="Operazioni", icon=":material/monitoring:", url_path="operazioni"),
 ]
 
-st.navigation(PAGES, position="top").run()
+page = st.navigation(PAGES, position="sidebar")
+settings = load_settings()
+ui.sidebar(settings.user, settings.backend_url)
+page.run()

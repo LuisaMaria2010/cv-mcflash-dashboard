@@ -1,6 +1,8 @@
 """Pagina Crea: nuovo candidato MCFlash da un CV.
 
-Senza ?bozza: si carica il CV e si estraggono i dati, oppure si riprende una bozza.
+Senza ?bozza: si carica il CV e si estraggono i dati, si cerca un CV gia'
+nell'archivio (la persona puo' avere un CV indicizzato anche senza riga su
+MCFlash), oppure si riprende una bozza.
 Con ?bozza=<id>: il form con i dati estratti, salvato da solo. Appena nome e
 cognome sono noti la pagina chiama /api/candidates/match: se il candidato
 esiste gia' propone di passare ad Aggiorna con la stessa bozza.
@@ -11,10 +13,58 @@ from typing import Any
 
 import streamlit as st
 
-from dashboard.components import backend, cv_editor, ui
+from dashboard.components import backend, cv_editor, cv_finder, ui
 from dashboard.components.candidates import candidate_title, text
+from dashboard.components.draft import trittico, with_identity
 
 draft_id = (st.query_params.get("bozza") or "").strip()
+
+
+def use_archived_cv(person: dict[str, Any]):
+    """Callback "Usa questo CV": nuova bozza dal CV dell'archivio, con nome e
+    cognome scritti dall'utente se il CV e' anonimo."""
+    def use(filename: str, data: bytes) -> None:
+        new_id = cv_editor.extract_to_draft(
+            "crea", None, data, filename, label=f"Estraggo i dati da «{filename}»…",
+            adjust=lambda ex: with_identity(ex, person.get("nome"), person.get("cognome"), age=person.get("eta"),
+                                            location=person.get("sede")))
+        if new_id:
+            st.query_params["bozza"] = new_id
+            st.rerun()
+    return use
+
+
+def archive_search(key: str, defaults: dict[str, Any]) -> None:
+    """Modulo con i dati noti della persona e ricerca dei suoi CV nell'archivio.
+    La ricerca parte solo dal pulsante (Invio non la avvia); il codice (trittico),
+    se scritto, vale al posto di quello calcolato da nome e cognome."""
+    with st.container(border=True):
+        st.caption("La persona potrebbe avere già un CV nell'archivio anche se non è su MCFlash.")
+        with st.form(f"{key}_form", border=False, enter_to_submit=False):
+            c1, c2, c3 = st.columns([2, 2, 1])
+            nome = c1.text_input("Nome", value=defaults.get("nome") or "", key=f"{key}_nome")
+            cognome = c2.text_input("Cognome", value=defaults.get("cognome") or "", key=f"{key}_cognome")
+            codice = c3.text_input("Codice", value="", max_chars=3, key=f"{key}_codice", placeholder="es. LSE",
+                                   help="Trittico: prima lettera del nome + prime due del cognome. "
+                                        "Se lo scrivi si cerca questo, oltre ai codici del nome")
+            c1, c2, c3 = st.columns([2, 1, 1.2])
+            ruolo = c1.text_input("Ruolo", value=defaults.get("ruolo") or "", key=f"{key}_ruolo")
+            eta = c2.number_input("Età", min_value=0, max_value=99, value=defaults.get("eta"), key=f"{key}_eta")
+            sede = c3.text_input("Città", value=defaults.get("sede") or "", key=f"{key}_sede")
+            submitted = st.form_submit_button("Cerca nell'archivio", type="primary", icon=":material/search:")
+        if submitted:
+            tri = codice.strip().upper()
+            if not (tri or trittico(nome, cognome) or ruolo.strip()):
+                st.warning("Scrivi il codice, oppure nome e cognome, oppure almeno il ruolo.")
+            else:
+                person = {"nome": nome.strip(), "cognome": cognome.strip(), "trittico": tri or None,
+                          "ruolo": ruolo.strip(), "eta": eta, "sede": sede.strip()}
+                st.session_state[f"{key}_person"] = person
+                cv_finder.search_now(key, person)
+        person = st.session_state.get(f"{key}_person")
+        if person:
+            cv_finder.panel(key, person, on_use=use_archived_cv(person), show_start=False)
+
 
 if not draft_id:
     ui.hero("Nuovo candidato", "Si carica il CV, si correggono i dati estratti e alla conferma si crea la riga su MCFlash.")
@@ -25,6 +75,9 @@ if not draft_id:
         if new_id:
             st.query_params["bozza"] = new_id
             st.rerun()
+        st.divider()
+        st.markdown("##### :material/manage_search: Oppure cerca un CV già nell'archivio")
+        archive_search("crea_new", {})
     with col_drafts:
         cv_editor.drafts_to_resume("crea", None, "views/crea.py")
     st.stop()
@@ -86,3 +139,8 @@ cv_editor.workspace(ed, _discarded)
 if not ed.get("operation_id"):
     with banner:
         match_banner()
+        with st.expander("Esiste già un CV di questa persona nell'archivio?", icon=":material/manage_search:"):
+            cur = ed["current"]
+            archive_search(f"crea_{draft_id[:8]}", {"nome": cur.get("first_name"), "cognome": cur.get("last_name"),
+                                                    "ruolo": cur.get("role"), "sede": cur.get("location"),
+                                                    "eta": int(cur["age"]) if str(cur.get("age") or "").isdigit() else None})

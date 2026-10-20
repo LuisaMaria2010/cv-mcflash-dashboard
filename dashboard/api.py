@@ -7,7 +7,9 @@ bozza, che arriva come byte.
 """
 from __future__ import annotations
 
+import re
 from typing import Any
+from urllib.parse import urlsplit
 
 import requests
 
@@ -53,6 +55,11 @@ class BackendClient:
         detail = (envelope or {}).get("error") or resp.text[:200] or resp.reason
         if resp.status_code in (401, 403):
             detail = "chiave della Function mancante o non valida (FUNCTION_KEY)"
+        elif resp.status_code == 404 and envelope is None:
+            # 404 senza busta: la rotta non esiste, non e' un record mancante.
+            path = urlsplit(getattr(resp, "url", "") or "").path or "questo endpoint"
+            detail = (f"il backend non ha {path}. In locale va aggiunto alla lista di 'func start --functions' "
+                      "(vedi README); su Azure va pubblicata la versione nuova del backend.")
         raise BackendError(f"Errore {resp.status_code} dal backend: {detail}",
                            status=resp.status_code, request_id=request_id)
 
@@ -84,6 +91,40 @@ class BackendClient:
 
     def get_candidate(self, candidate_id: str | int) -> dict[str, Any]:
         return self._request("GET", f"candidates/{candidate_id}")
+
+    def candidate_cv(self, candidate_id: str | int) -> tuple[str, bytes]:
+        """Il CV indicizzato del candidato: (nome file, byte). Senza busta JSON."""
+        return self._file(f"candidates/{candidate_id}/cv", fallback=f"cv_{candidate_id}")
+
+    def cv_file(self, document_id: str) -> tuple[str, bytes]:
+        """Un CV dell'archivio indicizzato: (nome file, byte)."""
+        return self._file("cv/file", params={"document_id": document_id}, fallback=document_id)
+
+    def _file(self, path: str, *, params: dict | None = None, fallback: str) -> tuple[str, bytes]:
+        resp = self._send("GET", path, params=params, timeout=60)
+        if resp.status_code >= 400:
+            try:
+                body = resp.json()
+            except ValueError:
+                body = None
+            self._raise_for_status(resp, body if isinstance(body, dict) else None)
+        match = re.search(r'filename="([^"]+)"', resp.headers.get("Content-Disposition", ""))
+        return (match.group(1) if match else fallback), resp.content
+
+    def find_cvs(self, *, modo: str = "codice", escludi: list[str] | None = None, **person: Any) -> dict[str, Any]:
+        """POST /api/cv-finder: CV dell'archivio probabilmente della persona.
+        person: id_mcflash, oppure nome, cognome, ruolo, eta, sede."""
+        body = {**{k: v for k, v in person.items() if v not in (None, "")}, "modo": modo, "escludi": escludi or []}
+        return self._request("POST", "cv-finder", json=body, timeout=180)
+
+    def link_cv(self, id_mcflash: str | int, document_id: str, *, user: str | None = None) -> dict[str, Any]:
+        """POST /api/cv-finder/link: collega un CV dell'archivio a un candidato senza CV."""
+        return self._request("POST", "cv-finder/link",
+                             json={"id_mcflash": str(id_mcflash), "document_id": document_id, "user": user})
+
+    def hide_candidate(self, candidate_id: str | int, *, user: str | None = None) -> dict[str, Any]:
+        """POST /api/candidates/<id>/nascondi: nasconde il candidato su MCFlash."""
+        return self._request("POST", f"candidates/{candidate_id}/nascondi", json={"user": user})
 
     def match_candidate(self, *, nome: str, cognome: str, trittico: str | None = None) -> dict[str, Any]:
         return self._request("POST", "candidates/match",

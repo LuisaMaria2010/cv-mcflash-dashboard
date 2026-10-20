@@ -10,7 +10,7 @@ Il backend resta nel repo esistente **Autocompilazione CV_ON_SITE** (Azure Funct
 
 1. **Backend** (repo Autocompilazione CV_ON_SITE, con il suo `.venv` attivo). Per caricare solo gli endpoint della dashboard, senza i trigger su blob e code dello storage reale:
    ```
-   func start --functions candidates candidate_detail candidates_match roles cv_filename mc_levels extract save_draft get_draft delete_draft list_drafts draft_original cv_render cv_commit_route get_operation retry_operation list_operations
+   func start --functions candidates candidate_detail candidate_hide candidate_cv candidates_match cv_finder_search cv_file cv_finder_link roles cv_filename mc_levels extract save_draft get_draft delete_draft list_drafts draft_original cv_render cv_commit_route get_operation retry_operation list_operations
    ```
 2. **Dashboard** (questo repo):
    ```
@@ -25,14 +25,15 @@ Il backend resta nel repo esistente **Autocompilazione CV_ON_SITE** (Azure Funct
 ### Struttura
 
 ```
-app.py                     # entry Streamlit, tab in alto (st.navigation)
-views/candidati.py         # home: lista, ricerca, filtri, Aggiorna per riga
-views/aggiorna.py          # aggiorna?id=<IdMCFlash>
+app.py                     # entry Streamlit, navigazione nella barra laterale (st.navigation)
+views/candidati.py         # home: lista, un filtro per campo MCFlash, Aggiorna per riga
+views/aggiorna.py          # aggiorna?id=<IdMCFlash>: si apre sul CV attuale, o su un CV nuovo (&nuovo=1)
 views/crea.py              # nuovo candidato (fase 3)
 views/operazioni.py        # monitor (fase 6)
 dashboard/config.py        # BACKEND_URL, FUNCTION_KEY da .env o dai secrets di Streamlit
 dashboard/api.py           # client HTTP verso il backend
 dashboard/components/      # chiamate con cache, testi derivati dalle righe candidato
+assets/                    # logo e icona della barra laterale
 tests/
 ```
 
@@ -68,7 +69,7 @@ La dashboard chiama solo il backend. Le credenziali di Blob, Table Storage, AI S
 
 Le due pagine hanno lo stesso schema a tre colonne: **CV caricato**, **dati estratti modificabili** e **anteprima del CV MCFlash**. Cambia solo l'esito della conferma: *Crea* aggiunge una riga su MCFlash e un nuovo documento all'indice. *Aggiorna* modifica la riga esistente e sostituisce il vecchio CV nell'indice.
 
-Sono pagine intere, raggiungibili dalle tab in alto: nessun popup, nessuna finestra sovrapposta.
+Sono pagine intere, raggiungibili dalla barra laterale: nessun popup, nessuna finestra sovrapposta.
 
 ### 5. Come si riconosce un candidato esistente
 

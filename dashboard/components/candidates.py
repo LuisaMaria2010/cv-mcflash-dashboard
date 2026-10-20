@@ -5,13 +5,40 @@ provano direttamente.
 """
 from __future__ import annotations
 
+import math
 from typing import Any, Iterable
 
 import pandas as pd
 from pandas.io.formats.style import Styler
 
-# Filtro "CV indicizzato": etichetta mostrata -> valore di has_cv per il backend.
+# Filtri della home, uno per ogni campo MCFlash: chiave -> (etichetta, tipo).
+# "text" = il campo contiene il testo, "choice" = uno dei valori scelti,
+# "range" = numero nell'intervallo, "flag" = tutti / si' / no.
+FILTERS: dict[str, tuple[str, str]] = {
+    "id": ("Id", "text"),
+    "trittico": ("Codice", "text"),
+    "nome_completo": ("Nome", "text"),
+    "cv": ("CV indicizzato", "flag"),
+    "ruolo": ("Ruolo", "choice"),
+    "seniority": ("Seniority", "choice"),
+    "sede": ("Sede", "choice"),
+    "disponibilita": ("Disponibilità", "choice"),
+    "site": ("Site", "choice"),
+    "lingue": ("Lingue", "text"),
+    "eta": ("Età", "range"),
+    "budget": ("Budget", "range"),
+    "abilitato": ("Abilitato", "flag"),
+    "is_talent_up": ("TalentUp", "flag"),
+    "cv_file": ("File CV", "text"),
+}
+
+# Opzioni dei filtri "flag": etichetta mostrata -> valore richiesto.
 CV_FILTERS: dict[str, bool | None] = {"tutti": None, "presente": True, "manca": False}
+FLAG_FILTERS: dict[str, bool | None] = {"tutti": None, "sì": True, "no": False}
+
+
+def flag_options(key: str) -> dict[str, bool | None]:
+    return CV_FILTERS if key == "cv" else FLAG_FILTERS
 
 # Colonne della tabella: chiave della riga -> intestazione. Sono tutti i campi
 # MCFlash, in chiaro, piu' lo stato del CV indicizzato (subito dopo il nome,
@@ -39,6 +66,8 @@ _OK = "background-color: #E3F4EA; color: #1E6B42; font-weight: 600"
 _TODO = "background-color: #FDEBD6; color: #9A5200; font-weight: 600"
 _OFF = "color: #8A94A6"
 _CODE = "color: #1F3864; font-weight: 700"
+_SELECTED = "background-color: #D6E4FB; color: #1F3864; font-weight: 700"
+_MARK = "color: #FFFFFF; background-color: #2E5AAC; font-weight: 700; text-align: center"
 
 
 def cv_label(row: dict[str, Any]) -> str:
@@ -54,14 +83,66 @@ def text(value: Any) -> str:
     return "" if value is None else str(value).strip()
 
 
-def sede_options(rows: Iterable[dict[str, Any]]) -> list[str]:
-    """Sedi distinte, ordinate senza badare alle maiuscole."""
+def field_value(row: dict[str, Any], key: str) -> Any:
+    """Valore del campo filtrato: lo stato del CV e il suo file stanno in row["cv"]."""
+    if key == "cv":
+        return bool(row.get("cv"))
+    if key == "cv_file":
+        return (row.get("cv") or {}).get("file")
+    return row.get(key)
+
+
+def _number(value: Any) -> float | None:
+    if isinstance(value, bool):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def distinct_values(rows: Iterable[dict[str, Any]], key: str) -> list[str]:
+    """Valori distinti di un campo, ordinati senza badare alle maiuscole."""
     seen: dict[str, str] = {}
     for row in rows:
-        sede = text(row.get("sede"))
-        if sede:
-            seen.setdefault(sede.casefold(), sede)
+        value = text(field_value(row, key))
+        if value:
+            seen.setdefault(value.casefold(), value)
     return sorted(seen.values(), key=str.casefold)
+
+
+def value_range(rows: Iterable[dict[str, Any]], key: str) -> tuple[int, int] | None:
+    """Minimo e massimo (interi) di un campo numerico; None se non ci sono numeri."""
+    numbers = [n for n in (_number(field_value(r, key)) for r in rows) if n is not None]
+    if not numbers:
+        return None
+    return math.floor(min(numbers)), math.ceil(max(numbers))
+
+
+def filter_rows(rows: list[dict[str, Any]], values: dict[str, Any]) -> list[dict[str, Any]]:
+    """Righe che rispettano tutti i filtri attivi. Valori per tipo (vedi FILTERS):
+    text -> str, choice -> lista di valori, range -> (min, max), flag -> bool.
+    Un valore vuoto o None vuol dire filtro spento."""
+    def keep(row: dict[str, Any]) -> bool:
+        for key, value in values.items():
+            kind = FILTERS[key][1]
+            field = field_value(row, key)
+            if kind == "text" and text(value):
+                if text(value).casefold() not in text(field).casefold():
+                    return False
+            elif kind == "choice" and value:
+                if text(field).casefold() not in {text(v).casefold() for v in value}:
+                    return False
+            elif kind == "range" and value is not None:
+                number = _number(field)
+                if number is None or not value[0] <= number <= value[1]:
+                    return False
+            elif kind == "flag" and value is not None:
+                if bool(field) != value:
+                    return False
+        return True
+
+    return [row for row in rows if keep(row)]
 
 
 def summary(rows: list[dict[str, Any]]) -> dict[str, int]:
@@ -75,8 +156,13 @@ def summary(rows: list[dict[str, Any]]) -> dict[str, int]:
     }
 
 
-def candidates_frame(rows: list[dict[str, Any]]) -> pd.DataFrame:
-    """Tabella con tutte le colonne di TABLE_COLUMNS, intestazioni in italiano."""
+# Prima colonna della tabella: la spunta sulla riga del candidato aperto.
+OPEN_MARK = " "
+
+
+def candidates_frame(rows: list[dict[str, Any]], opened: int | None = None) -> pd.DataFrame:
+    """Tabella con tutte le colonne di TABLE_COLUMNS, intestazioni in italiano, e
+    davanti la colonna OPEN_MARK con la spunta sulla riga `opened` (posizione)."""
     records = []
     for row in rows:
         cv = row.get("cv") or {}
@@ -87,12 +173,14 @@ def candidates_frame(rows: list[dict[str, Any]]) -> pd.DataFrame:
             "cv_label": cv_label(row),
             "cv_file": text(cv.get("file")),
         })
-    frame = pd.DataFrame.from_records(records, columns=list(TABLE_COLUMNS))
-    return frame.rename(columns=TABLE_COLUMNS)
+    frame = pd.DataFrame.from_records(records, columns=list(TABLE_COLUMNS)).rename(columns=TABLE_COLUMNS)
+    frame.insert(0, OPEN_MARK, ["✔" if i == opened else "" for i in range(len(frame))])
+    return frame
 
 
-def style_frame(frame: pd.DataFrame) -> Styler:
-    """Colori: CV presente in verde, mancante in arancio, record disabilitati in grigio."""
+def style_frame(frame: pd.DataFrame, selected: int | None = None) -> Styler:
+    """Colori: CV presente in verde, mancante in arancio, record disabilitati in grigio.
+    La riga `selected` (posizione) e' evidenziata in azzurro, tranne la cella del CV."""
     def cv_cell(value: Any) -> str:
         return _TODO if value == "manca" else _OK
 
@@ -100,12 +188,19 @@ def style_frame(frame: pd.DataFrame) -> Styler:
         style = _OFF if row.get("Abilitato") is False else ""
         return [style] * len(row)
 
-    return (
+    styler = (
         frame.style
         .apply(disabled_row, axis=1)
         .map(cv_cell, subset=["CV"])
         .map(lambda _: _CODE, subset=["Codice"])
     )
+    if OPEN_MARK in frame.columns:
+        styler = styler.map(lambda v: _MARK if v else "", subset=[OPEN_MARK])
+    if selected is not None and 0 <= selected < len(frame):
+        others = [c for c in frame.columns if c not in ("CV", OPEN_MARK)]
+        styler = styler.apply(lambda _: [_SELECTED] * len(others), axis=1,
+                              subset=pd.IndexSlice[frame.index[selected], others])
+    return styler
 
 
 def _languages_text(languages: Iterable[dict[str, Any]] | None) -> str:

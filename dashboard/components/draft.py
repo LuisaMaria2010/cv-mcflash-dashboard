@@ -55,6 +55,102 @@ def trittico(first_name: str | None, last_name: str | None) -> str | None:
     return first[0] + last[:2]
 
 
+def split_full_name(full: str | None, tri: str | None) -> tuple[str | None, str | None]:
+    """Nome e cognome da un nome completo MCFlash ("Mario De Luca"). Si sceglie il
+    taglio (anche con il cognome davanti) che ridà il trittico del record; se
+    nessuno torna, prima parola = nome, il resto = cognome."""
+    words = (full or "").split()
+    if not words:
+        return None, None
+    cuts = [(" ".join(words[:i]), " ".join(words[i:])) for i in range(1, len(words))]
+    cuts += [(b, a) for a, b in cuts]
+    wanted = (tri or "").strip().upper()
+    for first, last in cuts:
+        if wanted and trittico(first, last) == wanted:
+            return first, last
+    return (cuts[0] if cuts else (words[0], None))
+
+
+def identity_from_record(extraction: dict[str, Any], record: dict[str, Any]) -> dict[str, Any]:
+    """Il CV attuale e' nel modello MC, quindi anonimo: al posto del nome c'e' il
+    trittico. Nome, cognome e trittico si prendono dal record MCFlash; eta' solo
+    se il CV non la riporta."""
+    first, last = split_full_name(record.get("nome_completo"), record.get("trittico"))
+    out = dict(extraction)
+    out.update(first_name=first, last_name=last, full_name=full_name(first, last),
+               trittico=(record.get("trittico") or "").strip().upper() or trittico(first, last))
+    if not out.get("age") and record.get("eta") not in (None, ""):
+        out["age"] = record.get("eta")
+    return out
+
+
+def _is_code(value: Any) -> bool:
+    return bool(re.fullmatch(r"[A-Z]{3}", str(value or "").strip()))
+
+
+def with_identity(extraction: dict[str, Any], first: str | None, last: str | None, *,
+                  tri: str | None = None, age: Any = None, location: str | None = None) -> dict[str, Any]:
+    """Nome e cognome gia' noti (record MCFlash o form) al posto di quelli del CV
+    quando il CV e' anonimo (al posto del nome c'e' il codice) o non li riporta.
+    Eta' e citta' solo se il CV non le ha."""
+    out = dict(extraction)
+    anonymous = (not (out.get("first_name") and out.get("last_name"))
+                 or _is_code(out.get("first_name")) or _is_code(out.get("last_name")))
+    if anonymous and (first or last):
+        out.update(first_name=first or None, last_name=last or None, full_name=full_name(first, last),
+                   trittico=(tri or "").strip().upper() or trittico(first, last))
+    if not out.get("age") and age not in (None, ""):
+        out["age"] = age
+    if not out.get("location") and location:
+        out["location"] = location
+    return out
+
+
+def fill_from_record(extraction: dict[str, Any], record: dict[str, Any]) -> dict[str, Any]:
+    """with_identity con i dati del record MCFlash (aggiornamento di un candidato)."""
+    first, last = split_full_name(record.get("nome_completo"), record.get("trittico"))
+    return with_identity(extraction, first, last, tri=record.get("trittico"), age=record.get("eta"),
+                         location=record_city(record))
+
+
+def record_city(record: dict[str, Any]) -> str | None:
+    """Citta' dalla sede MCFlash ("Milano/remoto" -> "Milano"; "remoto" -> nessuna)."""
+    city = (record.get("sede") or "").split("/")[0].strip()
+    return None if city.casefold() in ("remoto", "remote", "ibrido", "") else city
+
+
+def parse_languages(text: str | None) -> list[dict[str, Any]]:
+    """Lingue di MCFlash ("Inglese: Avanzato, Francese: Base") nel formato del form."""
+    out = []
+    for part in re.split(r"[,;\n]", text or ""):
+        lang, _, level = part.partition(":")
+        if lang.strip():
+            out.append({"lang": lang.strip().lower(), "level": level.strip() or None})
+    return out
+
+
+def draft_from_record(record: dict[str, Any], catalog: Iterable[dict[str, Any]] = ()) -> dict[str, Any]:
+    """Dati del form per un candidato MCFlash senza CV: quello che MCFlash sa gia'.
+    Il resto (esperienze, skill, formazione) resta vuoto da compilare."""
+    out = identity_from_record({}, record)
+    # Sezioni del CV vuote ma presenti: il form le restituisce come liste vuote
+    # e non devono risultare "modificate".
+    out.update(cv_skills=[], experiences=[], education=[], trainings=[], certifications=[])
+    ruolo = (record.get("ruolo") or "").strip()
+    catalog_role = next((r["role"] for r in catalog
+                         if ruolo and ruolo.casefold() in {str(r.get("role") or "").casefold(),
+                                                           str(r.get("label") or "").casefold()}), None)
+    out.update(
+        location=record_city(record),
+        role=ruolo or None,
+        catalog_role=catalog_role,
+        languages=parse_languages(record.get("lingue")),
+        mcflash={"seniority": record.get("seniority"), "disponibilita": record.get("disponibilita"),
+                 "budget": record.get("budget"), "site": record.get("site")},
+    )
+    return out
+
+
 # ---------------------------------------------------------------- confronto
 
 def normalize(value: Any) -> Any:

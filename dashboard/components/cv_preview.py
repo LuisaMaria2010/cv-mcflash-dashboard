@@ -26,21 +26,21 @@ def docx_to_html(data: bytes) -> str:
     return mammoth.convert_to_html(io.BytesIO(data)).value
 
 
-def show_original(filename: str | None, data: bytes | None) -> None:
+def show_original(filename: str | None, data: bytes | None, height: int = PREVIEW_HEIGHT) -> None:
     """Mostra il file nella colonna corrente. Senza byte mostra solo un avviso."""
     if not data:
         st.info("Il CV originale non è disponibile per l'anteprima.")
         return
     suffix = PurePosixPath(filename or "").suffix.lower()
     if suffix == ".pdf":
-        st.pdf(data, height=PREVIEW_HEIGHT)
+        st.pdf(data, height=height)
     elif suffix == ".docx":
         try:
             body = docx_to_html(data)
         except Exception as exc:  # file danneggiato o non DOCX
             st.warning(f"Anteprima DOCX non riuscita: {exc}")
         else:
-            with st.container(height=PREVIEW_HEIGHT, border=False):
+            with st.container(height=height, border=False):
                 st.html(_DOCX_STYLE + f'<div class="mc-docx">{body}</div>')
     else:
         st.info(f"Anteprima non disponibile per i file «{suffix or 'senza estensione'}».")

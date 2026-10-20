@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 from dashboard.components.candidates import (
+    OPEN_MARK,
     TABLE_COLUMNS,
     candidate_title,
     candidates_frame,
     cv_label,
     cv_replacement_note,
-    sede_options,
+    distinct_values,
+    filter_rows,
+    value_range,
     style_frame,
     summary,
 )
@@ -28,9 +31,25 @@ def test_cv_label():
     assert cv_label({"cv": {"file": "a.pdf", "version": None}}) == "sì"
 
 
-def test_sede_options_distinct_and_sorted():
+def test_distinct_values_sorted_ignoring_case():
     rows = [{"sede": "Torino"}, {"sede": "roma"}, {"sede": "torino"}, {"sede": None}, {"sede": " "}]
-    assert sede_options(rows) == ["roma", "Torino"]
+    assert distinct_values(rows, "sede") == ["roma", "Torino"]
+
+
+def test_value_range():
+    assert value_range(ROWS, "eta") == (40, 40)
+    assert value_range([{"budget": 300.5}, {"budget": "120"}, {"budget": None}], "budget") == (120, 301)
+    assert value_range(ROWS, "budget") == (350, 350) and value_range([{}], "eta") is None
+
+
+def test_filter_rows_by_every_kind():
+    names = lambda values: [r["nome_completo"] for r in filter_rows(ROWS, values)]
+    assert names({}) == ["Davide Carli", "Mario Rossi"]
+    assert names({"trittico": "dc", "ruolo": [], "eta": None, "abilitato": None}) == ["Davide Carli"]
+    assert names({"sede": ["torino"]}) == ["Davide Carli"]
+    assert names({"eta": (41, 60)}) == [] and names({"eta": (30, 40)}) == ["Davide Carli"]
+    assert names({"abilitato": False}) == ["Mario Rossi"] and names({"is_talent_up": True}) == ["Mario Rossi"]
+    assert names({"cv": False}) == ["Mario Rossi"] and names({"cv_file": "skill"}) == ["Davide Carli"]
 
 
 def test_summary():
@@ -39,7 +58,7 @@ def test_summary():
 
 def test_frame_has_every_mcflash_field_in_clear():
     frame = candidates_frame(ROWS)
-    assert list(frame.columns) == list(TABLE_COLUMNS.values())
+    assert list(frame.columns) == [OPEN_MARK, *TABLE_COLUMNS.values()]
     first = frame.iloc[0].to_dict()
     assert first["Id"] == 1884 and first["Codice"] == "DCA" and first["Nome"] == "Davide Carli"
     assert first["Lingue"] == "Inglese C1" and first["Budget"] == 350 and first["Site"] == "mcflashcandidati"
@@ -62,3 +81,17 @@ def test_candidate_title_and_note():
     assert "sostituirà il v3" in cv_replacement_note(row)
     assert "Skill Tecnico_DCA_MC.pdf" in cv_replacement_note(row)
     assert "verrà aggiunto" in cv_replacement_note({"cv": None})
+
+
+def test_style_frame_highlights_the_selected_row_but_keeps_cv_color():
+    frame = candidates_frame(ROWS, opened=1)
+    assert list(frame[OPEN_MARK]) == ["", "✔"]
+
+    def highlighted(styler):
+        styler._compute()
+        return {(r, frame.columns[c]) for (r, c), props in styler.ctx.items()
+                if ("background-color", "#D6E4FB") in props}
+
+    cells = highlighted(style_frame(frame, selected=1))
+    assert cells == {(1, col) for col in frame.columns if col not in ("CV", OPEN_MARK)}  # tranne CV e spunta
+    assert highlighted(style_frame(frame)) == set()

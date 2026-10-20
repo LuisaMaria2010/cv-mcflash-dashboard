@@ -20,8 +20,22 @@ baseRadius = "0.6rem"
 buttonRadius = "0.6rem"
 showWidgetBorder = true
 
+# Barra laterale in blu MC: voci chiare, voce attiva e passaggio del mouse in blu medio.
+[theme.sidebar]
+backgroundColor = "#1F3864"
+secondaryBackgroundColor = "#2E5AAC"
+textColor = "#E8EEF9"
+primaryColor = "#9DBBF0"
+borderColor = "#34508A"
+linkColor = "#B9CCEE"
+
 [server]
 headless = true
+# Nella cartella OneDrive le modifiche ai moduli non sempre arrivano al watcher di
+# sistema: con il polling la dashboard ricarica sempre il codice aggiornato.
+fileWatcherType = "poll"
+# Senza .venv, test e documenti il polling resta veloce: si guarda solo il codice.
+folderWatchBlacklist = [".venv", "tests", ".pytest_cache", "docs"]
 
 [browser]
 gatherUsageStats = false

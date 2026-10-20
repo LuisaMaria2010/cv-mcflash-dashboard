@@ -78,6 +78,7 @@ Nel backend, blueprint `functions/dashboard_api.py`.
   - Query: `q` (ricerca su id, trittico, nome, ruolo, sede), `sede`, `has_cv`, `tutti` (anche disabilitati e TalentUp), `limit`, `offset`.
   - Se lo storage non risponde la lista esce lo stesso, senza CV, con un avviso in `warnings`.
 - [x] **`GET /api/candidates/{id}`**: dettaglio di un candidato (anche non idoneo), per pre-impostare la pagina Aggiorna; 404 se non esiste.
+- [x] **`GET /api/candidates/{id}/cv`**: il file del CV indicizzato (dal `source_path` del registro, altrimenti il file della mappa in `incoming-cv`), per l'anteprima a destra della tabella nella home; 404 se il candidato non ha CV o il file manca.
 - [x] **`POST /api/candidates/match`** `{nome, cognome, trittico?}` (oppure `nome_completo`) → `{trittico, esito: nuovo|aggiorna|scegli, motivo, candidati, stesso_trittico}`. Prima il trittico, poi il nome (`domain/candidate_match.py`, [schema](img/05-match-candidato.svg)).
   - Il nome si confronta senza maiuscole, accenti, punteggiatura e spazi doppi, in qualunque ordine ("Rossi Mario" = "Mario Rossi") e con o senza spazi nel cognome ("D'Amico" = "Damico").
   - Il match guarda tutti i record, anche quelli non idonei, per non creare doppioni.
@@ -94,7 +95,7 @@ In questo repo ([schema della pagina](img/03-pagina-candidati.svg)).
 
 - [x] **Struttura** (Streamlit 1.65, Python 3.12):
   ```
-  app.py                  # entry Streamlit, navigazione con st.navigation (tab in alto)
+  app.py                  # entry Streamlit, navigazione con st.navigation (barra laterale)
   views/candidati.py      # le pagine stanno in views/: con pages/ Streamlit le mostrerebbe da sola nella barra laterale
   views/crea.py
   views/aggiorna.py
@@ -104,10 +105,10 @@ In questo repo ([schema della pagina](img/03-pagina-candidati.svg)).
   dashboard/components/   # anteprima CV, form dati, anteprima MCFlash, operazioni
   tests/
   ```
-- [x] **Navigazione** con le tab in alto (`st.navigation(position="top")`). I pulsanti delle righe aprono `aggiorna?id=<IdMCFlash>`: la pagina è pre-impostata e si può salvare tra i preferiti.
+- [x] **Navigazione** nella barra laterale (`st.navigation(position="sidebar")`). I pulsanti delle righe aprono `aggiorna?id=<IdMCFlash>`: la pagina è pre-impostata e si può salvare tra i preferiti.
 - [x] **Pagina Candidati**: una tabella con **tutti** i record MCFlash (anche disabilitati e TalentUp) e **tutti i campi in chiaro**: id, codice, nome, CV, ruolo, seniority, età, sede, lingue, disponibilità, budget, site, abilitato, TalentUp, file CV.
-  - Contatori in cima; ricerca e filtri (sede, CV) facoltativi, salvati nell'URL (`?q=&sede=&cv=`).
-  - Selezionando una riga compare **Aggiorna**; ci sono anche **Nuovo candidato** e **Ricarica da MCFlash**.
+  - Contatori in cima; un filtro facoltativo per ogni campo MCFlash (testo, scelta multipla, intervallo per età e budget, sì/no), applicato in locale e salvato nell'URL (`?sede=Roma&sede=Torino&eta=30-45&cv=manca`). Cliccando un candidato, a destra compaiono l'anteprima del CV allegato (se c'è) e **Aggiorna dati**.
+  - Nel riquadro dei filtri ci sono anche **Nuovo candidato** e **Ricarica da MCFlash**.
 - [x] **Veste grafica**: tema con i colori del modello CV MC (blu `#1F3864`) in `.streamlit/config.toml`, font Barlow, fascia blu in testa a ogni pagina, celle colorate (CV presente in verde, mancante in arancio, record disabilitati in grigio).
 - [x] **Stato tra le pagine**: passa dall'URL (`st.query_params`) e da `st.session_state`, mai da finestre modali.
 - [x] **Pagina Aggiorna**: intestazione del candidato (trittico, ruolo, sede), dati MCFlash attuali e cosa succede all'indice ("il nuovo CV sostituirà il v2").
@@ -135,6 +136,10 @@ Nei due repo ([schema delle pagine Crea e Aggiorna](img/04-pagina-crea-aggiorna.
   - Salvataggio automatico a ogni modifica, più **Salva bozza**, **Scarica dati** (JSON) e **Scarta la bozza**.
   - La bozza sta nell'URL (`crea?bozza=<id>`, `aggiorna?id=<IdMCFlash>&bozza=<id>`); Crea e Aggiorna elencano le bozze da riprendere.
 - [x] **Candidato già esistente**: nella pagina Crea, appena nome e cognome sono noti, la dashboard chiama `match`. Se il candidato esiste già lo segnala con ruolo, sede, età e CV: **È questa persona: aggiorna** trasforma la stessa bozza in un aggiornamento e apre la pagina Aggiorna; **È una persona diversa** lascia proseguire con la creazione.
+- [x] **Nascondi candidato**: i candidati non si eliminano, si nascondono. Pulsante nel pannello del candidato (home) e nella pagina Aggiorna, con conferma esplicita. `POST /api/candidates/{id}/nascondi` usa il comando di MCFlash per nascondere (`MCFLASH_CANDIDATI_HIDE_URL`, con `{id}` al posto dell'Id, metodo in `MCFLASH_CANDIDATI_HIDE_METHOD`): MCFlash non restituisce più il candidato, quindi sparisce anche dalla dashboard. CV, indice e tabella CV → MCFlash restano. Con il MCFlash finto il candidato è segnato «nascondi» nella tabella `McflashFake` e non compare più.
+- [x] **Cerca nell'archivio**: in Aggiorna e in Crea un pulsante cerca i CV della persona (`POST /api/cv-finder`, `services/cv_finder.py`) con **le stesse regole della ricostruzione della tabella CV → MCFlash**, ora in un modulo comune (`domain/cv_matching.py`, usato anche da `scripts/build_cv_mcflash_map.py`): CV con il codice della persona presi dalle tabelle dello storage (`DocumentRegistry`, codici anche da `CvMcflashMap`), intestazione letta dal file del CV, giudizio LLM sul mestiere, persone per data di nascita, livello e scelta con le stesse soglie, CV già collegati e decisioni manuali (`infra/cv_mcflash_map_overrides.json`) rispettati. In cima l'esito (assegnato, dubbio, nessun CV, manuale); «Cerca ancora» allarga a codici simili senza scelta automatica. Ogni CV si apre in anteprima (`GET /api/cv/file`), si usa come un CV caricato oppure, per un candidato senza CV, si collega (`POST /api/cv-finder/link`).
+- [x] **Candidato senza CV**: Aggiorna apre il form compilato con i dati MCFlash (nome, codice, età, città, ruolo, lingue, seniority, disponibilità, budget, site); nella prima colonna si carica il CV o lo si cerca nell'archivio.
+- [x] **Modifica del CV attuale**: `aggiorna?id=<IdMCFlash>` riprende l'ultima bozza del candidato; se non ce ne sono e il candidato ha un CV indicizzato, lo scarica (`GET /api/candidates/{id}/cv`), ne estrae i dati e apre il form come per un CV caricato. Il CV attuale è anonimo (al posto del nome c'è il trittico), quindi nome, cognome e trittico si prendono dal record MCFlash. In alto restano **Carica un CV nuovo** (`&nuovo=1`) e **Riparti dal CV attuale** (`&da_cv=1`).
 - [x] **Confronto con MCFlash**: nella pagina Aggiorna una tabella affianca i dati MCFlash attuali (nome, codice, ruolo, sede, età, lingue) a quelli del CV, con in arancio i valori che cambiano.
 - [x] **Bug corretto nel backend, DOCX letto come testo**: un DOCX inviato a `/api/extract` senza MIME veniva letto come testo; l'LLM riceveva lo ZIP grezzo, inventava i dati e il risultato restava in cache. Ora il DOCX si riconosce anche dal contenuto (`extraction/extract.py`) e la pipeline scarta il testo in cache che è uno ZIP grezzo, con l'estrazione LLM collegata (`db_data/pipeline.py`). L'ingestione non era colpita, perché passa il MIME.
 - [x] **Test**: 35 nella dashboard (bozza, form, salvataggio automatico, passaggio da Crea ad Aggiorna, confronto); 8 per le bozze e 4 per il DOCX nel backend. Prova nel browser con `tests/sample_cv.docx`: caricamento, estrazione, correzione dell'email, pagina chiusa, bozza ripresa con la correzione.
@@ -248,6 +253,7 @@ Nei due repo ([schema della pagina](img/06-pagina-operazioni.svg)).
 | GET | `/api/roles` | catalogo dei ruoli MC con tariffe, per il menu "Ruolo" | 0 ✔ |
 | GET | `/api/candidates` | lista candidati + stato CV | 1 ✔ |
 | GET | `/api/candidates/{id}` | dettaglio candidato | 1 ✔ |
+| GET | `/api/candidates/{id}/cv` | file del CV indicizzato, per l'anteprima nella home | 1 ✔ |
 | POST | `/api/candidates/match` | trittico + nome → nuovo / aggiorna / scegli | 1 ✔ |
 | GET | `/api/mc-levels` | scale dei livelli MC per skill e lingue | 3 ✔ |
 | PUT/GET/DELETE | `/api/drafts/{draft_id}` | bozza dei dati modificati (backup) | 3 ✔ |

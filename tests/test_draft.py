@@ -6,6 +6,12 @@ from datetime import date
 import pytest
 
 from dashboard.components.draft import (
+    draft_from_record,
+    fill_from_record,
+    parse_languages,
+    with_identity,
+    identity_from_record,
+    split_full_name,
     changed_fields,
     changed_labels,
     commit_blockers,
@@ -88,3 +94,57 @@ def test_commit_blockers():
     assert commit_blockers(ok, "crea") == []
     assert commit_blockers({"trittico": "MRO", "role": "Dev"}, "aggiorna") == []
     assert commit_blockers({}, "crea") == ["nome e cognome (per il trittico)", "ruolo", "seniority", "site"]
+
+
+def test_split_full_name_matches_the_record_trittico():
+    assert split_full_name("Mario De Luca", "MDE") == ("Mario", "De Luca")
+    assert split_full_name("De Luca Mario", "MDE") == ("Mario", "De Luca")
+    assert split_full_name("Adeleke Adebowale Julius", "AAD") == ("Adeleke", "Adebowale Julius")
+    assert split_full_name("Anna Bianchi", "XYZ") == ("Anna", "Bianchi")
+    assert split_full_name("Cher", None) == ("Cher", None) and split_full_name("", "X") == (None, None)
+
+
+def test_identity_from_record_replaces_the_anonymous_name():
+    extraction = {"first_name": "ATR", "last_name": "ATR", "full_name": "ATR ATR", "trittico": "AAT", "age": None,
+                  "role": "QA"}
+    record = {"nome_completo": "Agostino Trovato", "trittico": "ATR", "eta": 29}
+    out = identity_from_record(extraction, record)
+    assert (out["first_name"], out["last_name"], out["full_name"], out["trittico"], out["age"]) ==         ("Agostino", "Trovato", "Agostino Trovato", "ATR", 29)
+    assert out["role"] == "QA" and extraction["first_name"] == "ATR"  # l'originale non cambia
+
+
+def test_parse_languages():
+    assert parse_languages("Inglese: Avanzato, Francese: Base") == [
+        {"lang": "inglese", "level": "Avanzato"}, {"lang": "francese", "level": "Base"}]
+    assert parse_languages("Spagnolo") == [{"lang": "spagnolo", "level": None}] and parse_languages(None) == []
+
+
+def test_draft_from_record():
+    record = {"nome_completo": "Adeleke Adebowale Julius", "trittico": "AAD", "eta": 41, "sede": "Milano/remoto",
+              "ruolo": "Cloud Engineer/DevOps Engineer", "lingue": "Inglese: Avanzato", "seniority": "Senior",
+              "disponibilita": "45 gg", "budget": 445, "site": "mcflashcandidati.mcengineering.eu"}
+    out = draft_from_record(record, [{"role": "cloud engineer/devops engineer", "label": "Cloud Engineer"}])
+    assert (out["first_name"], out["last_name"], out["trittico"]) == ("Adeleke", "Adebowale Julius", "AAD")
+    assert out["age"] == 41 and out["location"] == "Milano" and out["catalog_role"] == "cloud engineer/devops engineer"
+    assert out["mcflash"] == {"seniority": "Senior", "disponibilita": "45 gg", "budget": 445,
+                              "site": "mcflashcandidati.mcengineering.eu"}
+    assert draft_from_record({**record, "ruolo": "Altro"})["catalog_role"] is None
+
+
+def test_with_identity_only_for_anonymous_cvs():
+    anonymous = {"first_name": "ATR", "last_name": "ATR", "age": None, "location": "Milano"}
+    out = with_identity(anonymous, "Agostino", "Trovato", age=29, location="Roma")
+    assert (out["first_name"], out["trittico"], out["age"], out["location"]) == ("Agostino", "ATR", 29, "Milano")
+    named = {"first_name": "Mario", "last_name": "Rossi", "trittico": "MRO"}
+    assert with_identity(named, "Agostino", "Trovato")["first_name"] == "Mario"
+    record = {"nome_completo": "Agostino Trovato", "trittico": "ATR", "eta": 29, "sede": "Milano/remoto"}
+    assert fill_from_record({}, record)["full_name"] == "Agostino Trovato"
+
+
+def test_record_city_and_empty_sections():
+    from dashboard.components.draft import changed_fields, record_city
+    assert record_city({"sede": "Milano/remoto"}) == "Milano" and record_city({"sede": "remoto"}) is None
+    out = draft_from_record({"nome_completo": "Lorenzo Giura", "trittico": "LGI", "sede": "remoto"})
+    assert out["location"] is None
+    form = {**out, "cv_skills": [], "experiences": [], "education": [], "trainings": [], "certifications": []}
+    assert changed_fields(out, form) == set()

@@ -15,21 +15,26 @@ _TTL_SECONDS = 60
 
 
 @st.cache_data(ttl=_TTL_SECONDS, show_spinner=False)
-def list_candidates(q: str, sede: str, has_cv: bool | None, tutti: bool, limit: int, offset: int,
-                    refresh: bool = False) -> dict[str, Any]:
-    return api.get_client().list_candidates(q=q, sede=sede, has_cv=has_cv, tutti=tutti,
-                                            limit=limit, offset=offset, refresh=refresh)
-
-
-@st.cache_data(ttl=_TTL_SECONDS, show_spinner=False)
 def all_candidates() -> list[dict[str, Any]]:
-    """Tutti i record (anche non idonei): servono per le opzioni dei filtri."""
+    """Tutti i record (anche non idonei): la home li filtra in locale."""
     return api.get_client().list_candidates(tutti=True, limit=1000)["items"]
 
 
 @st.cache_data(ttl=_TTL_SECONDS, show_spinner=False)
 def get_candidate(candidate_id: str) -> dict[str, Any]:
     return api.get_client().get_candidate(candidate_id)
+
+
+@st.cache_data(ttl=600, show_spinner=False, max_entries=30)
+def candidate_cv(candidate_id: str, version: str) -> tuple[str, bytes]:
+    """CV del candidato per l'anteprima; la versione nella chiave fa rileggere un CV aggiornato."""
+    return api.get_client().candidate_cv(candidate_id)
+
+
+@st.cache_data(ttl=600, show_spinner=False, max_entries=40)
+def cv_file(document_id: str) -> tuple[str, bytes]:
+    """CV dell'archivio per l'anteprima dei risultati della ricerca."""
+    return api.get_client().cv_file(document_id)
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -75,7 +80,6 @@ def draft_original(draft_id: str) -> bytes:
 
 
 def clear_cache() -> None:
-    list_candidates.clear()
     all_candidates.clear()
     get_candidate.clear()
 
